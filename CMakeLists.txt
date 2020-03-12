@@ -1,13 +1,19 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
+CMAKE_MINIMUM_REQUIRED(VERSION 3.1)
 
-# Set up project properties
-SET(PROJECT_NAMESPACE gepetto)
+# Project properties
+SET(PROJECT_ORG gepetto)
 SET(PROJECT_NAME example-robot-data)
 SET(PROJECT_DESCRIPTION "Set of robot URDFs for benchmarking and developed examples.")
-SET(PROJECT_URL https://gepgitlab.laas.fr/${PROJECT_NAMESPACE}/${PROJECT_NAME})
+SET(PROJECT_URL https://github.com/${PROJECT_ORG}/${PROJECT_NAME})
+
+# Project options
+OPTION(BUILD_PYTHON_INTERFACE "Build the python unit tests and helpers" ON)
+OPTION(INSTALL_PYTHON_INTERFACE_ONLY "Install *ONLY* the python interface" OFF)
+
+# Project configuration
+SET(CUSTOM_HEADER_DIR ${PROJECT_NAME})
 
 INCLUDE(cmake/base.cmake)
-INCLUDE(cmake/test.cmake)
 INCLUDE(cmake/python.cmake)
 
 # Print initial message
@@ -16,29 +22,23 @@ MESSAGE("Copyright (C) 2018-2020 CNRS-LAAS / University of Edinburgh")
 MESSAGE("All rights reserved.")
 MESSAGE("Released under the BSD 3-Clause License.")
 
-# Set a default build type to 'Release' if none was specified
-IF(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-  MESSAGE(STATUS "Setting build type to 'Release' as none was specified.")
-  SET(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
-  # Set the possible values of build type for cmake-gui
-  SET_PROPERTY(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
-ENDIF()
-
-SET(CUSTOM_HEADER_DIR ${PROJECT_NAME})
-
+# Project definition
 COMPUTE_PROJECT_ARGS(PROJECT_ARGS LANGUAGES CXX)
 PROJECT(${PROJECT_NAME} ${PROJECT_ARGS})
 
-OPTION (BUILD_PYTHON_INTERFACE "Build the python unit tests and helpers" ON)
-OPTION (INSTALL_PYTHON_INTERFACE_ONLY "Install *ONLY* the python interface" OFF)
-
 IF(BUILD_PYTHON_INTERFACE)
-  ADD_REQUIRED_DEPENDENCY("pinocchio >= 2.1.0")
+  ADD_PROJECT_DEPENDENCY(pinocchio 2.1.0 REQUIRED
+    PKG_CONFIG_REQUIRES "pinocchio >= 2.1.0")
   FINDPYTHON()
   STRING(REGEX REPLACE "-" "_" PY_NAME ${PROJECT_NAME})
   ADD_SUBDIRECTORY(python)
   ADD_SUBDIRECTORY(unittest)
 ENDIF(BUILD_PYTHON_INTERFACE)
+
+# Main Library
+ADD_LIBRARY(${PROJECT_NAME} INTERFACE)
+INSTALL(TARGETS ${PROJECT_NAME} EXPORT ${TARGETS_EXPORT_NAME} DESTINATION lib)
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} INTERFACE $<INSTALL_INTERFACE:include>)
 
 IF(NOT INSTALL_PYTHON_INTERFACE_ONLY)
   ADD_SUBDIRECTORY(include/${CUSTOM_HEADER_DIR})
